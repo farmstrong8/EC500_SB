@@ -9,16 +9,18 @@ from google.cloud.vision import types
 from google.auth import app_engine
 import urllib2
 import subprocess
+
+#libraries needed to draw text on the images
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-CONSUMER_KEY = 'XXXXXXXX'
-CONSUMER_SECRET = 'XXXXXXXX'
-ACCESS_TOKEN = 'XXXXXXXX'
-ACCESS_TOKEN_SECRET = 'XXXXXXX'
+CONSUMER_KEY = 'XXXXXXXXX'
+CONSUMER_SECRET = 'XXXXXXXXXXX'
+ACCESS_TOKEN = 'XXXXXXXXXXXX'
+ACCESS_TOKEN_SECRET = 'XXXXXXXXXXX'
 diction = {}
 
 #========================= INTRODUCTION MESSAGE ===============================#
@@ -79,7 +81,8 @@ def get_images(statuses):
             i += 1
     return path
 
-
+#============================= GET VIDEO ======================================#
+#using ffmpeg api, convert the images in the directory to a video
 def convert_images(path):
     frames_per_second = 1
     os.chdir(path)
@@ -88,6 +91,9 @@ def convert_images(path):
     return
 
 
+
+#=============================== RENAME =======================================#
+#rename files 0 - number of images
 def rename_files(directory):
     i=0
     for filename in os.listdir(directory):
@@ -96,6 +102,9 @@ def rename_files(directory):
             i+=1
     return
 
+
+#=========================== GET GCV LABELS ===================================#
+#Get image labels using google cloud api and store them in the dictionary
 def get_picture_labels(uri,key):
     client = vision.ImageAnnotatorClient()
     image = types.Image()
@@ -113,40 +122,40 @@ def get_picture_labels(uri,key):
     return
 
 
+
+#======================= ADD TEXT TO IMAGE BASED ON LABEL =====================#
+#Given a directory, add text to an image based on the labels in the dictionary
 def add_text_to_image(directory):
-    i = 0
-    os.chdir(directory)
-    for filename in os.listdir(directory):
-        ypos= 0
+    os.chdir(directory) #point to the directory
+    for filename in os.listdir(directory): #for each file in the directory
+        ypos= 0 #ypos to change where the text is placed
         if filename.endswith(".jpg"):
             img = Image.open(filename)
             draw = ImageDraw.Draw(img)
             # font = ImageFont.truetype(<font-file>, <font-size>)
-            font = ImageFont.truetype("sans-serif.ttf", 16)
+            font = ImageFont.truetype("arial.ttf", 16) #get the font
             # draw.text((x, y),"Sample Text",(r,g,b))
-            newList = diction['image' + str(i)]
-            for item in newList:
+            name = filename[:-4] #remove the .jpg from the filename
+            newList = diction['image' + name] #get the items assocaied with the current file
+            for item in newList: #for each item in the list draw it on the image
                 print(item)
                 draw.text((0, ypos),item,(255,255,255),font=font)
-                ypos += 15
-            img.save(filename)
-            i+=1
+                ypos += 15 #increment ypos to make space for more labels if necessary
+            img.save(filename) #save the file
     return
 
 def main():
-
     while(True):
-        option = raw_input("\n What do you want to do? Press 0 to exit \n")
+        option = raw_input("\nPress any key to continue, Press 0 to exit \n")
         if(option == "0"):
             return
         else:
             state = get_tweets() #get the timeline
             outputf = get_images(state) #get output folder
-            #add_text_to_image(outputf)
-            print(diction)
             rename_files(outputf) #rename the images
             #convert_images(outputf) #convert the images to a video
-            #add_text_to_image(outputf)
+            add_text_to_image(outputf)
+            convert_images(outputf)
 
     return
 
