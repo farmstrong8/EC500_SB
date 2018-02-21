@@ -9,6 +9,7 @@ from google.cloud.vision import types
 from google.auth import app_engine
 import urllib2
 import subprocess
+from shutil import copyfile
 
 #libraries needed to draw text on the images
 from PIL import Image
@@ -17,10 +18,10 @@ from PIL import ImageDraw
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-CONSUMER_KEY = 'XXXXXXXXX'
-CONSUMER_SECRET = 'XXXXXXXXXXX'
-ACCESS_TOKEN = 'XXXXXXXXXXXX'
-ACCESS_TOKEN_SECRET = 'XXXXXXXXXXX'
+CONSUMER_KEY = 'XXXXXXXXXX'
+CONSUMER_SECRET = 'XXXXXXXXXX'
+ACCESS_TOKEN = 'XXXXXXXXXX'
+ACCESS_TOKEN_SECRET = 'XXXXXXXXXX'
 diction = {}
 
 #========================= INTRODUCTION MESSAGE ===============================#
@@ -47,8 +48,7 @@ def get_API_info():
 
 
 #============================ GET THE TWEETS ==================================#
-def get_tweets():
-    SCREEN_NAME = raw_input("What twitter handle do you want to search?\n")
+def get_tweets(SCREEN_NAME):
     #get the user that you want the statuses of
     try:
             auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
@@ -66,12 +66,12 @@ def get_tweets():
 
 
 #============================ DOWNLOAD IMGS ==================================#
-def get_images(statuses):
+def get_images(statuses, path):
     i = 0
-    path = raw_input("Where do you want to store the pictures?\n")
     if not os.path.exists(path): #if there is no directory
         print("Creating path....")
         os.makedirs(path)
+        subprocess.call(["cp", "-f","abel-regular.ttf", path])
 
     for status in statuses:
         media = status.entities.get('media', [])
@@ -85,9 +85,9 @@ def get_images(statuses):
 #using ffmpeg api, convert the images in the directory to a video
 def convert_images(path):
     frames_per_second = 1
-    os.chdir(path)
+    # os.chdir(path)
     #subprocess.call(["cd", "THERE"])
-    subprocess.call(["ffmpeg.exe","-y","-r",str(frames_per_second),"-i", "%01d.jpg","-vcodec","mpeg4", "-qscale","5", "-r", str(frames_per_second), "video.avi"])
+    subprocess.call(["ffmpeg","-y","-r",str(frames_per_second),"-i", "%01d.jpg","-vcodec","mpeg4", "-qscale","5", "-r", str(frames_per_second), "video.avi"])
     return
 
 
@@ -127,13 +127,14 @@ def get_picture_labels(uri,key):
 #Given a directory, add text to an image based on the labels in the dictionary
 def add_text_to_image(directory):
     os.chdir(directory) #point to the directory
-    for filename in os.listdir(directory): #for each file in the directory
+    print(os.path.abspath('.'))
+    for filename in os.listdir('.'): #for each file in the directory
         ypos= 0 #ypos to change where the text is placed
         if filename.endswith(".jpg"):
             img = Image.open(filename)
             draw = ImageDraw.Draw(img)
             # font = ImageFont.truetype(<font-file>, <font-size>)
-            font = ImageFont.truetype("arial.ttf", 16) #get the font
+            font = ImageFont.truetype("abel-regular.ttf", 16) #get the font
             # draw.text((x, y),"Sample Text",(r,g,b))
             name = filename[:-4] #remove the .jpg from the filename
             newList = diction['image' + name] #get the items assocaied with the current file
@@ -150,8 +151,10 @@ def main():
         if(option == "0"):
             return
         else:
-            state = get_tweets() #get the timeline
-            outputf = get_images(state) #get output folder
+            SCREEN_NAME = raw_input("What twitter handle do you want to search?\n")
+            state = get_tweets(SCREEN_NAME) #get the timeline
+            path = raw_input("Where do you want to store the pictures?\n")
+            outputf = get_images(state, path) #get output folder
             rename_files(outputf) #rename the images
             #convert_images(outputf) #convert the images to a video
             add_text_to_image(outputf)
